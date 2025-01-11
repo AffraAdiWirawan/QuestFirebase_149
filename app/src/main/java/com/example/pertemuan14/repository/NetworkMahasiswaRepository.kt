@@ -15,14 +15,13 @@ class NetworkMahasiswaRepository(
 ): MahasiswaRepository {
     override suspend fun getMahasiswa(): Flow<List<Mahasiswa>>  = callbackFlow{
         val mhsCollection = firestore.collection("Mahasiswa")
-            .orderBy("nim",Query.Direction.ASCENDING)
-            .addSnapshotListener{
-                value,error-> if (value != null){
+            .orderBy("nim", Query.Direction.ASCENDING)
+            .addSnapshotListener() { value, error ->
+                if (value != null) {
                     val mhsList = value.documents.mapNotNull {
-                        it.toObject(Mahasiswa::class.java)!!
-
+                        it.toObject(Mahasiswa::class.java)
                     }
-                     trySend(mhsList)
+                    trySend(mhsList)
                 }
 
             }
