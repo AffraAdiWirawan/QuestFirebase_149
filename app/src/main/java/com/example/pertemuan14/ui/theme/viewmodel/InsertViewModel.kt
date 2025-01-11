@@ -67,7 +67,13 @@ sealed class FormState {
     object Loading : FormState()
     data class Success(val message: String) : FormState()
     data class Error(val message: String) : FormState()
-}
+}// data class Insert Ui State
+data class InsertUiState(
+    val insertUiEvent: MahasiswaEvent = MahasiswaEvent(),
+    val isEntryValid: FormErrorState = FormErrorState(),
+)
+
+
 
 
 
