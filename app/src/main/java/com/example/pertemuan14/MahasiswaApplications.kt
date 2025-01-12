@@ -5,7 +5,7 @@ import com.example.pertemuan14.di.AppContainer
 import com.example.pertemuan14.di.MahasiswaContainer
 
 class MahasiswaApplications : Application() {
-    lateinit var container: AppContainer
+    lateinit var container: MahasiswaContainer
 
     override fun onCreate() {
         super.onCreate()
