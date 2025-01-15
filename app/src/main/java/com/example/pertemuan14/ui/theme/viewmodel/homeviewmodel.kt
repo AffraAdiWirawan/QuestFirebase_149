@@ -7,50 +7,60 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pertemuan14.model.Mahasiswa
 import com.example.pertemuan14.repository.MahasiswaRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
-sealed class HomeUiState {
-    data class Success(val mahasiswa: List<Mahasiswa>) : HomeUiState()
-    data class Error(val exception: Throwable) : HomeUiState()
-    object Loading : HomeUiState()
-}
-
-class HomeViewModel(private val mhs: MahasiswaRepository):ViewModel(){
-    var mhsUiState : HomeUiState by mutableStateOf(HomeUiState.Loading)
+class HomeViewModel(
+    private val repoMhs: MahasiswaRepository
+) : ViewModel() {
+    var mhsUiState: HomeUiState by mutableStateOf(HomeUiState.Loading)
         private set
 
     init {
         getMhs()
     }
 
-    fun getMhs(){
+    fun getMhs() {
         viewModelScope.launch {
-            mhs.getMahasiswa()
-                .onStart {
-                    mhsUiState = HomeUiState.Loading
+            repoMhs.getMahasiswa().onStart {
+                mhsUiState = HomeUiState.Loading
+            }
+                .catch {
+                    mhsUiState = HomeUiState.Error(e = it)
                 }
-                .catch{
-                    mhsUiState = HomeUiState.Error(it)
-                }
-                .collect{
-                    mhsUiState = if (it.isEmpty()){
-                        HomeUiState.Error(Exception("Belum ada daftar mahasiswa"))
-                    } else {
+                .collect {
+                    mhsUiState = if (it.isEmpty()) {
+                        HomeUiState.Error(Exception("Belum ada data Mahasiswa"))
+                    } else
                         HomeUiState.Success(it)
-                    }
                 }
         }
     }
 
-    fun deleteMhs(mahasiswa: Mahasiswa) {
+    fun deleteMhs(mahasiswa: Mahasiswa) { // ViewModel untuk delete
         viewModelScope.launch {
             try {
-                mhs.deleteMahasiswa(mahasiswa)
+                repoMhs.deleteMahasiswa(mahasiswa)
             } catch (e: Exception) {
                 mhsUiState = HomeUiState.Error(e)
             }
         }
     }
+
+    fun getMhsDetail(nim: String): Flow<Mahasiswa> {
+        return repoMhs.getMahasiswaByNim(nim)
+    }
+}
+
+sealed class HomeUiState {
+    // Loading
+    object Loading : HomeUiState()
+
+    // Sukses
+    data class Success(val data: List<Mahasiswa>) : HomeUiState()
+
+    // Error
+    data class Error(val e: Throwable) : HomeUiState()
 }
