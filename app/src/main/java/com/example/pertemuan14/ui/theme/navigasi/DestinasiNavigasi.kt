@@ -12,3 +12,8 @@ object DestinasiInsert : DestinasiNavigasi {
     override val route: String = "insert"
     override val titleRes: String = "Insert"
 }
+
+object DestinasiDetail {
+    const val route = "detail/{nim}"
+    fun createRoute(nim: String) = "detail/$nim"
+}
