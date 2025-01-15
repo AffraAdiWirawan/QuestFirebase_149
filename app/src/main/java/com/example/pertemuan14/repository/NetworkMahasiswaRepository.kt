@@ -1,5 +1,6 @@
 package com.example.pertemuan14.repository
 
+import android.util.Log
 import com.example.pertemuan14.model.Mahasiswa
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -8,28 +9,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
-
-class NetworkMahasiswaRepository(
+class NetworkRepositoryMhs(
     private val firestore: FirebaseFirestore
-): MahasiswaRepository {
-    override suspend fun getMahasiswa(): Flow<List<Mahasiswa>>  = callbackFlow{
-        val mhsCollection = firestore.collection("Mahasiswa")
-            .orderBy("nim", Query.Direction.ASCENDING)
-            .addSnapshotListener() { value, error ->
-                if (value != null) {
-                    val mhsList = value.documents.mapNotNull {
-                        it.toObject(Mahasiswa::class.java)
-                    }
-                    trySend(mhsList)
-                }
-
-            }
-        awaitClose {
-            mhsCollection.remove()
-        }
-
-    }
-
+) : MahasiswaRepository {
     override suspend fun insertMahasiswa(mahasiswa: Mahasiswa) {
         try {
             firestore.collection("Mahasiswa").add(mahasiswa)
@@ -39,43 +21,103 @@ class NetworkMahasiswaRepository(
         }
     }
 
-    override suspend fun updateMahasiswa(nim: String, mahasiswa: Mahasiswa) {
-        try {
-            firestore.collection("Mahasiswa")
-                .document(mahasiswa.nim)
-                .set(mahasiswa)
-                .await()
-        } catch (e: Exception) {
-            throw Exception ("Gagal mengupdate data mahasiswa: " +
-                    "${e.message}")
+    override fun getMahasiswa(): Flow<List<Mahasiswa>> = callbackFlow {
+        // Membuka collection dari Firestore
+        val mhsCollection = firestore.collection("Mahasiswa")
+            .orderBy("nim", Query.Direction.ASCENDING)
+            .addSnapshotListener { value, error ->
+                if (value != null) {
+                    val mhsList = value.documents.mapNotNull {
+                        // Convert dari Document Firestore kedalam data class
+                        it.toObject(Mahasiswa::class.java)!!
+                    }
+                    // fungsi untuk mengirimkan collection ke database
+                    trySend(mhsList)
+                }
+            }
+        awaitClose {
+            // Menutup Collection
+            mhsCollection.remove()
         }
     }
+
+    override fun getMahasiswaByNim(nim: String): Flow<Mahasiswa> = callbackFlow {
+        val mhsCollection = firestore.collection("Mahasiswa")
+            .whereEqualTo("nim", nim) // Query based on the "nim" field
+
+        mhsCollection.addSnapshotListener { querySnapshot, error ->
+            if (error != null) {
+                // Log error and close the flow
+                Log.e("Firestore", "Error fetching documents: $error")
+                close(error)
+                return@addSnapshotListener
+            }
+
+            querySnapshot?.let {
+                // If documents are found
+                if (!it.isEmpty) {
+                    for (document in it.documents) {
+                        // Log raw data for debugging
+                        Log.d("Firestore", "Document Data: ${document.data}")
+
+                        // Attempt to map the document to the Mahasiswa object
+                        val mhs = document.toObject(Mahasiswa::class.java)
+                        if (mhs != null) {
+                            // Successfully mapped Mahasiswa object
+                            trySend(mhs)
+                        } else {
+                            // Log mapping failure and close the flow
+                            Log.e("Firestore", "Failed to map document to Mahasiswa")
+                            close(Exception("Document data is invalid or null"))
+                        }
+                    }
+                } else {
+                    // Handle case where no document is found
+                    Log.e("Firestore", "No documents found for nim: $nim")
+                    close(Exception("No documents found for nim: $nim"))
+                }
+            } ?: run {
+                // Handle case where snapshot is null
+                Log.e("Firestore", "No documents found for nim: $nim")
+                close(Exception("No documents found for nim: $nim"))
+            }
+        }
+
+        // Remove the listener when the flow is closed
+        awaitClose {
+            // Firestore will automatically handle cleanup
+        }
+    }
+
 
     override suspend fun deleteMahasiswa(mahasiswa: Mahasiswa) {
         try {
-            firestore.collection("Mahasiswa")
-                .document(mahasiswa.nim)
-                .delete()
-                .await()
+            mahasiswa.nim?.let {
+                firestore.collection("Mahasiswa")
+                    .whereEqualTo("nim", mahasiswa.nim)
+                    .get()
+                    .await()
+                    .documents
+                    .firstOrNull()
+                    ?.reference
+                    ?.delete()
+                    ?.await()
+            }
         } catch (e: Exception) {
-            throw Exception ("Gagal menghapus data mahasiswa:" +
-                    "${e.message}")
+            throw Exception("Gagal menghapus data mahasiswa: ${e.message}")
         }
     }
 
-
-    override suspend fun getMahasiswaByNim(nim: String): Flow<Mahasiswa> = callbackFlow {
-        val mhsDocument = firestore.collection("Mahasiswa")
-            .document(nim)
-            .addSnapshotListener { value, error ->
-                if (value != null) {
-                    val mhs = value.toObject(Mahasiswa::class.java)!!
-                    trySend(mhs)
-                }
+    override suspend fun updateMahasiswa(mahasiswa: Mahasiswa) {
+        try {
+            mahasiswa.nim?.let {
+                firestore.collection("Mahasiswa") // Method untuk update mahasiswa
+                    .document(it)
+                    .set(mahasiswa)
+                    .await()
             }
-
-        awaitClose {
-            mhsDocument.remove()
+        } catch (e: Exception) {
+            throw Exception("Gagal menghapus data mahasiswa: ${e.message}")
         }
     }
 }
