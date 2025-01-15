@@ -31,7 +31,10 @@ class InsertViewModel (
             jenis_kelamin = if (event.jenis_kelamin?.isNotEmpty() == true) null else "Jenis Kelamin tidak boleh kosong",
             alamat = if (event.alamat?.isNotEmpty() == true) null else "Alamat tidak boleh kosong",
             kelas = if (event.kelas?.isNotEmpty() == true) null else "Kelas tidak boleh kosong",
-            angkatan = if (event.angkatan?.isNotEmpty() == true) null else "angkatan tidak boleh kosong"
+            angkatan = if (event.angkatan?.isNotEmpty() == true) null else "angkatan tidak boleh kosong",
+            judulskripsi = if (event.judulskripsi?.isNotEmpty() == true) null else "Judul Skripsi tidak boleh kosong",
+            dosensatu = if (event.dosensatu?.isNotEmpty() == true) null else "Dosen Pembimbing 1 tidak boleh kosong",
+            dosendua = if (event.dosendua?.isNotEmpty() == true) null else "Dosen Pembimbing 2 tidak boleh kosong"
         )
         uiEvent = uiEvent.copy(isEntryValid = errorState)
         return errorState.isValid()
@@ -79,7 +82,10 @@ data class FormErrorState(
     val jenis_kelamin: String? = null,
     val alamat: String? = null,
     val kelas: String? = null,
-    val angkatan: String? = null
+    val angkatan: String? = null,
+    val judulskripsi: String? = null,
+    val dosensatu: String? = null,
+    val dosendua: String? = null
 ) {
     fun isValid(): Boolean {
         return nim == null && nama == null && jenis_kelamin == null &&
@@ -93,7 +99,10 @@ data class MahasiswaEvent(
     val jenis_kelamin: String? = "",
     val alamat: String? = "",
     val kelas: String? = "",
-    val angkatan: String? = ""
+    val angkatan: String? = "",
+    val judulskripsi: String? = "",
+    val dosensatu: String? = "",
+    val dosendua: String? = ""
 )
 // Menyimpan input form kedalam entity
 fun MahasiswaEvent.toMhsModel() : Mahasiswa = Mahasiswa(
@@ -102,9 +111,11 @@ fun MahasiswaEvent.toMhsModel() : Mahasiswa = Mahasiswa(
     jenis_kelamin = jenis_kelamin?: "",
     alamat = alamat?: "",
     kelas = kelas?: "",
-    angkatan = angkatan?: ""
+    angkatan = angkatan?: "",
+    judulskripsi = judulskripsi?: "",
+    dosensatu = dosensatu?: "",
+    dosendua = dosendua?: ""
 )
-
 
 
 
